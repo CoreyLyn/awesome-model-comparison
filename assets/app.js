@@ -20,9 +20,6 @@
     searchInput: document.getElementById("searchInput"),
     tagChips: document.getElementById("tagChips"),
     promptList: document.getElementById("promptList"),
-    btnReloadManifest: document.getElementById("btnReloadManifest"),
-    btnPickManifest: document.getElementById("btnPickManifest"),
-    manifestHint: document.getElementById("manifestHint"),
     promptTitle: document.getElementById("promptTitle"),
     promptDesc: document.getElementById("promptDesc"),
     btnCopyPrompt: document.getElementById("btnCopyPrompt"),
@@ -213,62 +210,19 @@
     }
   }
 
-  function showHint(message) {
-    el.manifestHint.hidden = !message;
-    el.manifestHint.textContent = message || "";
-  }
-
   function validateManifest(maybe) {
-    if (!maybe || typeof maybe !== "object") throw new Error("清单格式错误：根对象不是 JSON object。");
-    if (!Array.isArray(maybe.prompts)) throw new Error("清单格式错误：缺少 prompts[]。");
+    if (!maybe || typeof maybe !== "object") throw new Error("Invalid manifest: root is not a JSON object.");
+    if (!Array.isArray(maybe.prompts)) throw new Error("Invalid manifest: missing prompts[].");
     return maybe;
   }
 
   async function loadManifestFromFetch(path) {
     const res = await fetch(path, { cache: "no-store" });
-    if (!res.ok) throw new Error(`读取失败：${res.status} ${res.statusText}`);
+    if (!res.ok) throw new Error(`Failed to read: ${res.status} ${res.statusText}`);
     const text = await res.text();
     const json = validateManifest(JSON.parse(text));
     state.manifestSource = { type: "fetch", path, file: null, cachedText: text };
     return json;
-  }
-
-  async function loadManifestFromFilePicker() {
-    if (!window.showOpenFilePicker) {
-      throw new Error("当前浏览器不支持文件选择 API；建议用本地静态服务器打开该页面。");
-    }
-
-    const [handle] = await window.showOpenFilePicker({
-      multiple: false,
-      types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
-    });
-
-    const file = await handle.getFile();
-    const text = await file.text();
-    const json = validateManifest(JSON.parse(text));
-    state.manifestSource = { type: "file", path: null, file: handle, cachedText: text };
-    return json;
-  }
-
-  async function reloadManifest() {
-    showHint("");
-    try {
-      if (state.manifestSource.type === "file" && state.manifestSource.file) {
-        const file = await state.manifestSource.file.getFile();
-        const text = await file.text();
-        state.manifest = validateManifest(JSON.parse(text));
-        state.manifestSource.cachedText = text;
-        toast("清单已刷新");
-        renderAll();
-        return;
-      }
-      state.manifest = await loadManifestFromFetch(DEFAULT_MANIFEST_PATH);
-      toast("清单已刷新");
-      renderAll();
-    } catch (err) {
-      showHint(String(err?.message || err));
-      toast("刷新失败");
-    }
   }
 
   function getPromptById(id) {
@@ -303,7 +257,7 @@
     const allChip = document.createElement("button");
     allChip.type = "button";
     allChip.className = "chip";
-    allChip.textContent = "全部";
+    allChip.textContent = "All";
     allChip.dataset.active = state.selectedTags.size === 0 ? "true" : "false";
     allChip.addEventListener("click", () => {
       state.selectedTags.clear();
@@ -334,7 +288,7 @@
     if (!state.filteredPrompts.length) {
       const empty = document.createElement("div");
       empty.className = "hint";
-      empty.textContent = "无匹配提示词。尝试清空搜索或标签过滤。";
+      empty.textContent = "No matching prompts. Try clearing your search or tag filters.";
       el.promptList.appendChild(empty);
       return;
     }
@@ -403,8 +357,8 @@
   function renderHeader() {
     const prompt = getPromptById(state.selectedPromptId);
     if (!prompt) {
-      el.promptTitle.textContent = "选择一个提示词";
-      el.promptDesc.textContent = "从左侧列表切换，或加载本地清单。";
+      el.promptTitle.textContent = "Select a prompt";
+      el.promptDesc.textContent = "Choose from the list on the left.";
       return;
     }
     el.promptTitle.textContent = safeText(prompt.title) || prompt.id;
@@ -434,7 +388,7 @@
     if (state.mode === "split") {
       const divider = document.createElement("div");
       divider.className = "split-divider";
-      divider.title = "拖拽调节左右列宽";
+      divider.title = "Drag to adjust column width";
       installSplitDrag(divider, el.models);
       el.models.appendChild(divider);
     }
@@ -484,14 +438,14 @@
     const node = document.createElement("div");
     node.className = "error";
     const strong = document.createElement("strong");
-    strong.textContent = "加载失败";
+    strong.textContent = "Load failed";
     const text = document.createElement("div");
     text.textContent = message;
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "btn";
-    btn.textContent = "重试";
+    btn.textContent = "Retry";
     btn.addEventListener("click", retryFn);
 
     node.appendChild(strong);
@@ -517,7 +471,7 @@
       controller?.abort();
       setIframeError(
         card,
-        `加载超时。可能原因：\n- 运行在 IDE 预览/WebView，iframe 被限制\n- 未通过本地静态服务器打开\n- htmlPath 指向不存在的文件\n\n当前页面协议：${location.protocol}\n目标：${resolvedUrl}`,
+        `Load timeout. Possible reasons:\n- Running in IDE preview/WebView where iframes are restricted\n- Not opened via local static server\n- htmlPath points to non-existent file\n\nCurrent protocol: ${location.protocol}\nTarget: ${resolvedUrl}`,
         () =>
           loadIframeWithState(iframe, skeleton, card, resolvedUrl),
       );
@@ -546,7 +500,7 @@
       controller?.abort();
       window.clearTimeout(timeout);
       skeleton.hidden = true;
-      setIframeError(card, "浏览器报告加载错误。", () =>
+      setIframeError(card, "Browser reported loading error.", () =>
         loadIframeWithState(iframe, skeleton, card, resolvedUrl),
       );
       cleanup();
@@ -581,7 +535,7 @@
           iframe.dataset.render = "srcdoc";
           iframe.src = "about:blank";
           iframe.setAttribute("srcdoc", text);
-          toast("使用 srcdoc 回退渲染");
+          toast("Using srcdoc fallback rendering");
           cleanup();
         } catch {
           // ignore
@@ -596,7 +550,7 @@
     if (!iframe || !skeleton) return;
     iframe.src = "about:blank";
     window.setTimeout(() => loadIframeWithState(iframe, skeleton, card, resolvedUrl), 0);
-    toast("已刷新");
+    toast("Refreshed");
   }
 
   function createModelCard(model, idx) {
@@ -616,7 +570,7 @@
 
     const label = document.createElement("div");
     label.className = "model-label";
-    label.textContent = safeText(model.label) || safeText(model.modelId) || "未命名模型";
+    label.textContent = safeText(model.label) || safeText(model.modelId) || "Unnamed model";
 
     const source = document.createElement("div");
     source.className = "model-source";
@@ -640,15 +594,15 @@
     const url = safeText(model.htmlPath);
     const resolvedUrl = url ? new URL(url, location.href).toString() : null;
 
-    const btnReload = actionButton("刷新 iframe", "#i-refresh");
+    const btnReload = actionButton("Refresh iframe", "#i-refresh");
     btnReload.addEventListener("click", () => {
-      if (!resolvedUrl) return toast("缺少 htmlPath");
+      if (!resolvedUrl) return toast("Missing htmlPath");
       reloadIframe(card, resolvedUrl);
     });
 
-    const btnOpen = actionButton("新标签打开", "#i-external");
+    const btnOpen = actionButton("Open in new tab", "#i-external");
     btnOpen.addEventListener("click", () => {
-      if (!resolvedUrl) return toast("缺少 htmlPath");
+      if (!resolvedUrl) return toast("Missing htmlPath");
       window.open(resolvedUrl, "_blank", "noopener,noreferrer");
     });
 
@@ -663,7 +617,7 @@
 
     const skeleton = document.createElement("div");
     skeleton.className = "skeleton";
-    skeleton.textContent = "加载中…";
+    skeleton.textContent = "Loading...";
     shell.appendChild(skeleton);
 
     const iframe = document.createElement("iframe");
@@ -677,7 +631,7 @@
     card.appendChild(shell);
 
     if (resolvedUrl) loadIframeWithState(iframe, skeleton, card, resolvedUrl);
-    else skeleton.textContent = "缺少 htmlPath";
+    else skeleton.textContent = "Missing htmlPath";
 
     return card;
   }
@@ -701,18 +655,7 @@
       persistUIState();
     });
 
-    el.btnReloadManifest.addEventListener("click", reloadManifest);
-    el.btnPickManifest.addEventListener("click", async () => {
-      showHint("");
-      try {
-        state.manifest = await loadManifestFromFilePicker();
-        toast("清单已加载");
-        renderAll();
-      } catch (err) {
-        showHint(String(err?.message || err));
-        toast("加载失败");
-      }
-    });
+
 
     for (const btn of document.querySelectorAll(".seg-btn")) {
       btn.addEventListener("click", () => setMode(btn.dataset.mode));
@@ -721,13 +664,13 @@
     el.btnCopyPrompt.addEventListener("click", async () => {
       const prompt = getPromptById(state.selectedPromptId);
       const ok = await copyToClipboard(prompt?.description || "");
-      toast(ok ? "已复制提示词" : "复制失败");
+      toast(ok ? "Prompt copied" : "Copy failed");
     });
 
     el.btnToggleTheme.addEventListener("click", () => {
       const next = state.theme === "dark" ? "light" : state.theme === "light" ? "auto" : "dark";
       applyTheme(next);
-      toast(next === "auto" ? "主题：跟随系统" : `主题：${next === "dark" ? "深色" : "浅色"}`);
+      toast(next === "auto" ? "Theme: System" : `Theme: ${next === "dark" ? "Dark" : "Light"}`);
     });
 
     window.addEventListener("keydown", (e) => {
@@ -751,12 +694,8 @@
 
     try {
       state.manifest = await loadManifestFromFetch(DEFAULT_MANIFEST_PATH);
-      showHint("");
     } catch (err) {
-      showHint(
-        `无法自动读取 ${DEFAULT_MANIFEST_PATH}：${String(err?.message || err)}\n` +
-        `可点“加载清单”选择本地 prompts.json，或用本地静态服务器打开该目录。`,
-      );
+      console.error(`Failed to read ${DEFAULT_MANIFEST_PATH}:`, err);
     }
 
     if (init.prompt) state.selectedPromptId = init.prompt;
