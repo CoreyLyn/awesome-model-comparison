@@ -13,16 +13,22 @@
           "source": "OpenAI"
         },
         {
+          "modelId": "gemini-3-pro",
+          "label": "Gemini 3 Pro",
+          "htmlPath": "html/ios-weather/gemini-3-pro.html",
+          "source": "Google"
+        },
+        {
           "modelId": "claude-sonnet-4.5",
           "label": "Claude Sonnet 4.5",
           "htmlPath": "html/ios-weather/claude-sonnet-4.5.html",
           "source": "Anthropic"
         },
         {
-          "modelId": "gemini-3-pro",
-          "label": "Gemini 3 Pro",
-          "htmlPath": "html/ios-weather/gemini-3-pro.html",
-          "source": "Google"
+          "modelId": "grok-4.1",
+          "label": "Grok 4.1",
+          "htmlPath": "html/ios-weather/grok-4.1.html",
+          "source": "XAI"
         }
       ]
     }

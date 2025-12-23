@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iOS 18 Style Animated Weather Dashboard</title>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --card-blur: 20px;
+      --card-border: 1px solid rgba(255, 255, 255, 0.15);
+      --text-primary: rgba(255, 255, 255, 0.95);
+      --text-secondary: rgba(255, 255, 255, 0.7);
+      --shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      overflow: hidden;
+    }
+
+    .dashboard {
+      display: flex;
+      gap: 24px;
+      overflow-x: auto;
+      padding: 20px 0;
+      scrollbar-width: none;
+    }
+
+    .dashboard::-webkit-scrollbar {
+      display: none;
+    }
+
+    .weather-card {
+      width: 320px;
+      height: 520px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 32px;
+      backdrop-filter: blur(var(--card-blur));
+      -webkit-backdrop-filter: blur(var(--card-blur));
+      border: var(--card-border);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .weather-card:hover {
+      transform: translateY(-12px) scale(1.02);
+      box-shadow: 0 32px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .location {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .time {
+      font-size: 14px;
+      color: var(--text-secondary);
+      opacity: 0.8;
+    }
+
+    .temperature {
+      font-size: 96px;
+      font-weight: 300;
+      color: var(--text-primary);
+      line-height: 1;
+      margin: 20px 0;
+    }
+
+    .condition {
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 40px;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .detail-item {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px 16px;
+      text-align: center;
+    }
+
+    .detail-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .detail-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Sunny Animation */
+    .sunny .background-effect {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 30% 30%, rgba(255, 220, 100, 0.4) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .sun {
+      position: absolute;
+      top: 80px;
+      right: 40px;
+      width: 100px;
+      height: 100px;
+      background: #FFD700;
+      border-radius: 50%;
+      box-shadow: 0 0 60px #FFD700;
+      animation: pulse 8s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* Windy Animation */
+    .windy .wind-line {
+      position: absolute;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 1px;
+      animation: wind 4s linear infinite;
+    }
+
+    @keyframes wind {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(400%); }
+    }
+
+    /* Heavy Rain Animation */
+    .rain {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .rain-drop {
+      position: absolute;
+      width: 2px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.6);
+      animation: fall linear infinite;
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(600px); }
+    }
+
+    /* Blizzard Animation */
+    .snow {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .snowflake {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.8;
+      animation: snowfall linear infinite;
+    }
+
+    @keyframes snowfall {
+      0% { transform: translateY(-100%) translateX(0) rotate(0deg); }
+      100% { transform: translateY(600px) translateX(100px) rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard" id="dashboard">
+    <!-- Sunny Card -->
+    <div class="weather-card sunny">
+      <div class="background-effect"></div>
+      <div class="sun"></div>
+      <div class="card-header">
+        <div>
+          <div class="location">San Francisco</div>
+          <div class="time">Now</div>
+        </div>
+      </div>
+      <div class="temperature">28°</div>
+      <div class="condition">Sunny</div>
+      <div class="details">
+        <div class="detail-item">
+          <div class="detail-label">Feels like</div>
+          <div class="detail-value">30°</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">UV Index</div>
+          <div class="detail-value">8</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Humidity</div>
+          <div class="detail-value">42%</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Wind</div>
+          <div class="detail-value">6 km/h</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Windy Card -->
+    <div class="weather-card windy">
+      <div class="card-header">
+        <div>
+          <div class="location">Chicago</div>
+          <div class="time">Now</div>
+        </div>
+      </div>
+      <div class="temperature">18°</div>
+      <div class="condition">Windy</div>
+      <div class="details">
+        <div class="detail-item">
+          <div class="detail-label">Feels like</div>
+          <div class="detail-value">14°</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Wind</div>
+          <div class="detail-value">48 km/h</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Gust</div>
+          <div class="detail-value">68 km/h</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Direction</div>
+          <div class="detail-value">NW</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heavy Rain Card -->
+    <div class="weather-card rainy">
+      <div class="rain" id="rain"></div>
+      <div class="card-header">
+        <div>
+          <div class="location">Seattle</div>
+          <div class="time">Now</div>
+        </div>
+      </div>
+      <div class="temperature">12°</div>
+      <div class="condition">Heavy Rain</div>
+      <div class="details">
+        <div class="detail-item">
+          <div class="detail-label">Feels like</div>
+          <div class="detail-value">10°</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Precipitation</div>
+          <div class="detail-value">18 mm/h</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Humidity</div>
+          <div class="detail-value">94%</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Wind</div>
+          <div class="detail-value">22 km/h</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Blizzard Card -->
+    <div class="weather-card blizzard">
+      <div class="snow" id="snow"></div>
+      <div class="card-header">
+        <div>
+          <div class="location">Anchorage</div>
+          <div class="time">Now</div>
+        </div>
+      </div>
+      <div class="temperature">-8°</div>
+      <div class="condition">Blizzard</div>
+      <div class="details">
+        <div class="detail-item">
+          <div class="detail-label">Feels like</div>
+          <div class="detail-value">-18°</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Wind</div>
+          <div class="detail-value">65 km/h</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Visibility</div>
+          <div class="detail-value">0.3 km</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Snow</div>
+          <div class="detail-value">12 cm/h</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Wind lines animation
+    const windyCard = document.querySelector('.windy');
+    for (let i = 0; i < 12; i++) {
+      const line = document.createElement('div');
+      line.classList.add('wind-line');
+      line.style.top = `${Math.random() * 100}%`;
+      line.style.animationDelay = `${Math.random() * 4}s`;
+      line.style.animationDuration = `${3 + Math.random() * 2}s`;
+      line.style.opacity = `${0.2 + Math.random() * 0.3}`;
+      windyCard.appendChild(line);
+    }
+
+    // Rain drops
+    const rainContainer = document.getElementById('rain');
+    for (let i = 0; i < 80; i++) {
+      const drop = document.createElement('div');
+      drop.classList.add('rain-drop');
+      drop.style.left = `${Math.random() * 100}%`;
+      drop.style.animationDelay = `${Math.random() * 2}s`;
+      drop.style.animationDuration = `${0.4 + Math.random() * 0.6}s`;
+      drop.style.opacity = `${0.4 + Math.random() * 0.4}`;
+      rainContainer.appendChild(drop);
+    }
+
+    // Snowflakes
+    const snowContainer = document.getElementById('snow');
+    for (let i = 0; i < 60; i++) {
+      const flake = document.createElement('div');
+      flake.classList.add('snowflake');
+      flake.style.left = `${Math.random() * 100}%`;
+      flake.style.animationDelay = `${Math.random() * 10}s`;
+      flake.style.animationDuration = `${8 + Math.random() * 12}s`;
+      flake.style.width = flake.style.height = `${4 + Math.random() * 8}px`;
+      flake.style.opacity = `${0.6 + Math.random() * 0.4}`;
+      snowContainer.appendChild(flake);
+    }
+
+    // Smooth hover tilt effect (optional enhancement)
+    const cards = document.querySelectorAll('.weather-card');
+    cards.forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = (y - centerY) / 15;
+        const rotateY = (centerX - x) / 15;
+
+        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px) scale(1.02)`;
+      });
+
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0) scale(1)';
+      });
+    });
+  </script>
+</body>
+</html>
