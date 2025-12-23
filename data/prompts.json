@@ -2,7 +2,7 @@
   "prompts": [
     {
       "id": "ios-weather",
-      "title": "iOS 18 天气卡片",
+      "title": "iOS Weather Dashboard",
       "description": "You are a UI Designer at Apple Inc. Create an animated weather card interface following the iOS 18 design style. Use HTML, CSS, and vanilla JavaScript to build a horizontal weather dashboard containing 4 distinct cards: Sunny, Windy, Heavy Rain, and Blizzard. The design must be aesthetically pleasing and feature smooth interactive effects.",
       "tags": ["UI", "iOS", "Weather"],
       "models": [

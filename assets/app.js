@@ -97,6 +97,18 @@
     return u.toString();
   }
 
+  function isProbablyFileUrl(url) {
+    try {
+      return new URL(url, location.href).protocol === "file:";
+    } catch {
+      return false;
+    }
+  }
+
+  function iframeSrcForLoad(resolvedUrl) {
+    return isProbablyFileUrl(resolvedUrl) ? resolvedUrl : urlWithCacheBuster(resolvedUrl);
+  }
+
   function getInitialUIState() {
     const fromStorage = (() => {
       try {
@@ -495,41 +507,95 @@
   function loadIframeWithState(iframe, skeleton, card, resolvedUrl) {
     clearIframeError(card);
     skeleton.hidden = false;
-    const src = urlWithCacheBuster(resolvedUrl);
-    let finished = false;
+    const src = iframeSrcForLoad(resolvedUrl);
+    let done = false;
+    const controller = window.AbortController ? new AbortController() : null;
+    let fallbackTimer = 0;
 
     const timeout = window.setTimeout(() => {
-      if (finished) return;
-      setIframeError(card, "加载超时。请检查 htmlPath 是否可访问。", () =>
+      if (done) return;
+      controller?.abort();
+      setIframeError(
+        card,
+        `加载超时。可能原因：\n- 运行在 IDE 预览/WebView，iframe 被限制\n- 未通过本地静态服务器打开\n- htmlPath 指向不存在的文件\n\n当前页面协议：${location.protocol}\n目标：${resolvedUrl}`,
+        () =>
         loadIframeWithState(iframe, skeleton, card, resolvedUrl),
       );
       skeleton.hidden = true;
     }, 12000);
 
-    iframe.onload = () => {
-      finished = true;
+    const cleanup = () => {
+      iframe.removeEventListener("load", onLoad);
+      iframe.removeEventListener("error", onError);
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
+    };
+
+    const onLoad = () => {
+      if (done) return;
+      done = true;
+      controller?.abort();
       window.clearTimeout(timeout);
       skeleton.hidden = true;
       clearIframeError(card);
+      cleanup();
     };
 
-    iframe.onerror = () => {
-      finished = true;
+    const onError = () => {
+      if (done) return;
+      done = true;
+      controller?.abort();
       window.clearTimeout(timeout);
       skeleton.hidden = true;
       setIframeError(card, "浏览器报告加载错误。", () =>
         loadIframeWithState(iframe, skeleton, card, resolvedUrl),
       );
+      cleanup();
     };
 
+    cleanup();
+    iframe.addEventListener("load", onLoad);
+    iframe.addEventListener("error", onError);
+
+    // Reset any previous srcdoc render so navigation events can fire properly.
+    iframe.removeAttribute("srcdoc");
+    iframe.dataset.render = "src";
     iframe.src = src;
+
+    // Fallback: in some preview environments, iframe navigation/load events can stall.
+    // If we can fetch the HTML, render it via srcdoc (keeps HTML unchanged, but may break relative assets).
+    if (!isProbablyFileUrl(resolvedUrl)) {
+      fallbackTimer = window.setTimeout(async () => {
+        if (done) return;
+        try {
+          const res = await fetch(resolvedUrl, {
+            cache: "no-store",
+            signal: controller?.signal,
+          });
+          if (!res.ok) return;
+          const text = await res.text();
+          if (done) return;
+          done = true;
+          window.clearTimeout(timeout);
+          skeleton.hidden = true;
+          clearIframeError(card);
+          iframe.dataset.render = "srcdoc";
+          iframe.src = "about:blank";
+          iframe.setAttribute("srcdoc", text);
+          toast("使用 srcdoc 回退渲染");
+          cleanup();
+        } catch {
+          // ignore
+        }
+      }, 1500);
+    }
   }
 
   function reloadIframe(card, resolvedUrl) {
     const iframe = card.querySelector("iframe");
     const skeleton = card.querySelector(".skeleton");
     if (!iframe || !skeleton) return;
-    loadIframeWithState(iframe, skeleton, card, resolvedUrl);
+    iframe.src = "about:blank";
+    window.setTimeout(() => loadIframeWithState(iframe, skeleton, card, resolvedUrl), 0);
     toast("已刷新");
   }
 
@@ -634,7 +700,7 @@
 
     const iframe = document.createElement("iframe");
     iframe.className = "model-iframe";
-    iframe.loading = "lazy";
+    iframe.loading = "eager";
     iframe.referrerPolicy = "no-referrer";
     iframe.title = label.textContent;
     shell.appendChild(iframe);

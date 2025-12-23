@@ -547,6 +547,10 @@ pre {
   }
 }
 
+.skeleton[hidden] {
+  display: none;
+}
+
 .error {
   position: absolute;
   inset: 0;
