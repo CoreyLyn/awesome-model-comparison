@@ -6,6 +6,7 @@
   --muted: rgba(255, 255, 255, 0.62);
   --border: rgba(255, 255, 255, 0.12);
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.3);
   --accent: #8ab4ff;
   --danger: #ff6b6b;
 
@@ -27,6 +28,7 @@ html[data-theme="light"] {
   --muted: rgba(0, 0, 0, 0.56);
   --border: rgba(0, 0, 0, 0.12);
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
   --accent: #2b6fff;
   --danger: #c0392b;
 }
@@ -71,10 +73,10 @@ pre {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
   backdrop-filter: blur(10px);
   padding: 14px;
-  overflow: hidden;
   display: grid;
   grid-template-rows: auto auto 1fr;
   gap: 12px;
+  min-height: 0;
 }
 
 .sidebar-top {
@@ -175,8 +177,10 @@ pre {
 .prompt-list {
   overflow: auto;
   display: grid;
+  align-content: start;
   gap: 10px;
-  padding-right: 4px;
+  padding: 12px;
+  margin: -12px;
 }
 
 .prompt-item {
@@ -191,13 +195,13 @@ pre {
 
 .prompt-item:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-card);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
 .prompt-item[data-active="true"] {
   border-color: rgba(138, 180, 255, 0.6);
-  box-shadow: 0 0 0 1px rgba(138, 180, 255, 0.25), var(--shadow);
+  box-shadow: 0 0 0 1px rgba(138, 180, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .prompt-item-title {
