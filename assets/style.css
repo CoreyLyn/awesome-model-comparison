@@ -32,7 +32,7 @@ html[data-theme="light"] {
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
   --border-hover: rgba(0, 0, 0, 0.2);
-  --bg-hover: rgba(0, 0, 0, 0.06);
+  --bg-hover: rgba(0, 0, 0, 0.035);
   --accent: #2b6fff;
   --danger: #c0392b;
 }
@@ -231,6 +231,7 @@ pre {
   line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -294,6 +295,7 @@ pre {
   color: var(--muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
