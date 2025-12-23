@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Awesome Model Comparison</title>
+    <link rel="stylesheet" href="assets/style.css" />
+    <script defer src="assets/app.js"></script>
+  </head>
+  <body>
+    <svg aria-hidden="true" class="svg-sprite">
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15a7.5 7.5 0 0 1 0 15Zm9 3l-5.2-5.2" />
+      </symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M9 9h10v12H9z" />
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+      </symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 12a8 8 0 1 1-2.34-5.66" />
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 4v6h-6" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M14 4h6v6" />
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 4l-9 9" />
+      </symbol>
+      <symbol id="i-code" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 18L3 12l6-6M15 6l6 6-6 6" />
+      </symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 18a6 6 0 1 0 0-12a6 6 0 0 0 0 12Z" />
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M21 14.5A8.5 8.5 0 0 1 9.5 3a7 7 0 1 0 11.5 11.5Z" />
+      </symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
+      </symbol>
+    </svg>
+
+    <div class="app" id="app">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+          <div class="brand">
+            <div class="brand-title">Model Comparison</div>
+            <div class="brand-sub">HTML 观感 / 交互对比</div>
+          </div>
+          <button class="icon-btn" id="btnSidebarClose" type="button" title="收起侧栏">
+            <span class="icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15 18l-6-6 6-6"/></svg>
+            </span>
+          </button>
+        </div>
+
+        <div class="sidebar-controls">
+          <label class="search">
+            <span class="icon" aria-hidden="true"><svg><use href="#i-search"></use></svg></span>
+            <input id="searchInput" type="search" placeholder="搜索提示词/标签…" autocomplete="off" />
+          </label>
+
+          <div class="tag-row">
+            <div class="tag-scroller" id="tagChips"></div>
+          </div>
+
+          <div class="sidebar-actions">
+            <button class="btn" id="btnReloadManifest" type="button">刷新清单</button>
+            <button class="btn secondary" id="btnPickManifest" type="button">加载清单</button>
+          </div>
+
+          <div class="hint" id="manifestHint" hidden></div>
+        </div>
+
+        <div class="prompt-list" id="promptList" role="listbox" aria-label="提示词列表"></div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="icon-btn" id="btnSidebarOpen" type="button" title="展开侧栏">
+              <span class="icon"><svg><use href="#i-menu"></use></svg></span>
+            </button>
+            <div class="prompt-meta">
+              <div class="prompt-title" id="promptTitle">选择一个提示词</div>
+              <div class="prompt-desc" id="promptDesc">从左侧列表切换，或加载本地清单。</div>
+            </div>
+          </div>
+
+          <div class="topbar-right">
+            <div class="segmented" role="group" aria-label="视图模式">
+              <button class="seg-btn" data-mode="grid" type="button" title="网格">网格</button>
+              <button class="seg-btn" data-mode="split" type="button" title="分栏">分栏</button>
+              <button class="seg-btn" data-mode="single" type="button" title="单列">单列</button>
+            </div>
+
+            <button class="btn" id="btnCopyPrompt" type="button" title="复制提示词">
+              <span class="icon" aria-hidden="true"><svg><use href="#i-copy"></use></svg></span>
+              复制提示
+            </button>
+
+            <button class="icon-btn" id="btnToggleTheme" type="button" title="切换主题">
+              <span class="icon" id="themeIcon" aria-hidden="true"><svg><use href="#i-moon"></use></svg></span>
+            </button>
+          </div>
+        </header>
+
+        <section class="content">
+          <div class="empty" id="emptyState">
+            <div class="empty-title">开始对比</div>
+            <div class="empty-sub">
+              默认读取 <code>data/prompts.json</code>；若浏览器阻止 <code>file://</code> 读取，可点“加载清单”选择文件。
+            </div>
+          </div>
+          <div class="models" id="models"></div>
+        </section>
+      </main>
+    </div>
+
+    <noscript>
+      <div class="noscript">需要启用 JavaScript 才能使用该对比页。</div>
+    </noscript>
+  </body>
+</html>
+

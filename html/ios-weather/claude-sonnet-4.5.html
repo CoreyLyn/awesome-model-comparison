@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS 18 Weather Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .dashboard {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .weather-card {
+            position: relative;
+            width: 300px;
+            height: 400px;
+            border-radius: 30px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .weather-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .weather-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .weather-card:hover::before {
+            opacity: 0.3;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .location {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+
+        .time {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .weather-icon {
+            width: 120px;
+            height: 120px;
+            margin: 30px auto;
+            position: relative;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .temperature {
+            font-size: 72px;
+            font-weight: 300;
+            color: white;
+            text-align: center;
+            margin: 20px 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .condition {
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.95);
+            text-align: center;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .details {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .detail-item {
+            text-align: center;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-size: 18px;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Sunny Card */
+        .sunny {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+        }
+
+        .sun {
+            width: 80px;
+            height: 80px;
+            background: #fff5b7;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: relative;
+            box-shadow: 0 0 40px rgba(255, 223, 0, 0.8);
+            animation: rotate 20s linear infinite, pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 40px rgba(255, 223, 0, 0.8); }
+            50% { box-shadow: 0 0 60px rgba(255, 223, 0, 1); }
+        }
+
+        .sun::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        /* Windy Card */
+        .windy {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+
+        .wind {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .wind-line {
+            position: absolute;
+            height: 3px;
+            background: white;
+            border-radius: 10px;
+            opacity: 0.7;
+            animation: windMove 3s ease-in-out infinite;
+        }
+
+        .wind-line:nth-child(1) {
+            top: 30%;
+            width: 60px;
+            animation-delay: 0s;
+        }
+
+        .wind-line:nth-child(2) {
+            top: 50%;
+            width: 80px;
+            animation-delay: 0.5s;
+        }
+
+        .wind-line:nth-child(3) {
+            top: 70%;
+            width: 50px;
+            animation-delay: 1s;
+        }
+
+        @keyframes windMove {
+            0% { transform: translateX(-100px); opacity: 0; }
+            50% { opacity: 0.7; }
+            100% { transform: translateX(200px); opacity: 0; }
+        }
+
+        /* Rainy Card */
+        .rainy {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .rain-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .cloud {
+            width: 80px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50px;
+            margin: 0 auto 20px;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .cloud::before,
+        .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+        }
+
+        .cloud::before {
+            width: 35px;
+            height: 35px;
+            top: -15px;
+            left: 10px;
+        }
+
+        .cloud::after {
+            width: 45px;
+            height: 45px;
+            top: -20px;
+            right: 10px;
+        }
+
+        .raindrop {
+            position: absolute;
+            width: 2px;
+            height: 15px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.3));
+            border-radius: 10px;
+            animation: fall 1s linear infinite;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-20px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(120px); opacity: 0; }
+        }
+
+        /* Blizzard Card */
+        .blizzard {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        }
+
+        .snowflake {
+            position: absolute;
+            color: white;
+            font-size: 20px;
+            opacity: 0.8;
+            animation: snow 4s linear infinite;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes snow {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(140px) rotate(360deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sunny Card -->
+        <div class="weather-card sunny">
+            <div class="card-header">
+                <span class="location">San Francisco</span>
+                <span class="time">2:30 PM</span>
+            </div>
+            <div class="weather-icon">
+                <div class="sun"></div>
+            </div>
+            <div class="temperature">28°</div>
+            <div class="condition">Sunny</div>
+            <div class="details">
+                <div class="detail-item">
+                    <div class="detail-label">Wind</div>
+                    <div class="detail-value">12 km/h</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Humidity</div>
+                    <div class="detail-value">45%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Windy Card -->
+        <div class="weather-card windy">
+            <div class="card-header">
+                <span class="location">Chicago</span>
+                <span class="time">3:45 PM</span>
+            </div>
+            <div class="weather-icon">
+                <div class="wind">
+                    <div class="wind-line"></div>
+                    <div class="wind-line"></div>
+                    <div class="wind-line"></div>
+                </div>
+            </div>
+            <div class="temperature">18°</div>
+            <div class="condition">Windy</div>
+            <div class="details">
+                <div class="detail-item">
+                    <div class="detail-label">Wind</div>
+                    <div class="detail-value">35 km/h</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Humidity</div>
+                    <div class="detail-value">62%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rainy Card -->
+        <div class="weather-card rainy">
+            <div class="card-header">
+                <span class="location">Seattle</span>
+                <span class="time">1:15 PM</span>
+            </div>
+            <div class="weather-icon">
+                <div class="rain-container">
+                    <div class="cloud"></div>
+                </div>
+            </div>
+            <div class="temperature">14°</div>
+            <div class="condition">Heavy Rain</div>
+            <div class="details">
+                <div class="detail-item">
+                    <div class="detail-label">Wind</div>
+                    <div class="detail-value">22 km/h</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Humidity</div>
+                    <div class="detail-value">88%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Blizzard Card -->
+        <div class="weather-card blizzard">
+            <div class="card-header">
+                <span class="location">Denver</span>
+                <span class="time">12:00 PM</span>
+            </div>
+            <div class="weather-icon" id="snowContainer"></div>
+            <div class="temperature">-5°</div>
+            <div class="condition">Blizzard</div>
+            <div class="details">
+                <div class="detail-item">
+                    <div class="detail-label">Wind</div>
+                    <div class="detail-value">48 km/h</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Humidity</div>
+                    <div class="detail-value">95%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate raindrops
+        const rainContainer = document.querySelector('.rain-container');
+        for (let i = 0; i < 20; i++) {
+            const drop = document.createElement('div');
+            drop.className = 'raindrop';
+            drop.style.left = Math.random() * 100 + '%';
+            drop.style.animationDelay = Math.random() * 2 + 's';
+            drop.style.animationDuration = (Math.random() * 0.5 + 0.8) + 's';
+            rainContainer.appendChild(drop);
+        }
+
+        // Generate snowflakes
+        const snowContainer = document.getElementById('snowContainer');
+        for (let i = 0; i < 15; i++) {
+            const flake = document.createElement('div');
+            flake.className = 'snowflake';
+            flake.innerHTML = '❄';
+            flake.style.left = Math.random() * 100 + '%';
+            flake.style.fontSize = (Math.random() * 10 + 15) + 'px';
+            flake.style.animationDelay = Math.random() * 4 + 's';
+            flake.style.animationDuration = (Math.random() * 2 + 3) + 's';
+            snowContainer.appendChild(flake);
+        }
+
+        // Add click interaction
+        document.querySelectorAll('.weather-card').forEach(card => {
+            card.addEventListener('click', function() {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 200);
+            });
+        });
+    </script>
+</body>
+</html>

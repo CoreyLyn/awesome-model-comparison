@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>iOS 18 Weather Cards</title>
+  <style>
+    :root{
+      --bg0:#06070b;
+      --bg1:#0b1020;
+      --glass: rgba(255,255,255,.10);
+      --glass2: rgba(255,255,255,.14);
+      --stroke: rgba(255,255,255,.14);
+      --stroke2: rgba(255,255,255,.08);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --muted2: rgba(255,255,255,.52);
+      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --shadow2: 0 10px 30px rgba(0,0,0,.35);
+      --r: 26px;
+      --ease: cubic-bezier(.2,.8,.2,1);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 15% 15%, rgba(90,180,255,.22), transparent 55%),
+        radial-gradient(900px 700px at 85% 20%, rgba(255,120,180,.18), transparent 55%),
+        radial-gradient(900px 700px at 30% 95%, rgba(120,255,210,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    .wrap{
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 26px 20px 30px;
+    }
+
+    header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:16px;
+      padding: 8px 4px 16px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .title h1{
+      margin:0;
+      font-size: 22px;
+      letter-spacing: .2px;
+      font-weight: 650;
+    }
+    .title p{
+      margin:0;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: .15px;
+    }
+
+    .seg{
+      display:flex;
+      gap:8px;
+      padding: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 10px 26px rgba(0,0,0,.25);
+    }
+    .seg button{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      padding: 8px 12px;
+      font-size: 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: transparent;
+      transition: transform 240ms var(--ease), background 240ms var(--ease), color 240ms var(--ease);
+      letter-spacing: .2px;
+    }
+    .seg button:hover{transform: translateY(-1px)}
+    .seg button.active{
+      background: rgba(255,255,255,.14);
+      color: var(--text);
+    }
+
+    .dash{
+      display:flex;
+      gap:16px;
+      overflow-x:auto;
+      padding: 6px 4px 14px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    .dash::-webkit-scrollbar{height:10px}
+    .dash::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.12);
+      border-radius: 999px;
+      border: 2px solid rgba(0,0,0,.2);
+    }
+    .dash::-webkit-scrollbar-track{background: transparent}
+
+    .card{
+      position:relative;
+      flex: 0 0 280px;
+      height: 360px;
+      border-radius: var(--r);
+      scroll-snap-align: start;
+      background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.06));
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      transform-style: preserve-3d;
+      transition: transform 420ms var(--ease), box-shadow 420ms var(--ease), border-color 420ms var(--ease);
+      isolation:isolate;
+    }
+    .card::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(800px 420px at var(--mx, 40%) var(--my, 20%), rgba(255,255,255,.20), transparent 40%);
+      opacity: .9;
+      pointer-events:none;
+      filter: blur(0px);
+      transition: opacity 350ms var(--ease);
+      z-index:0;
+    }
+    .card::after{
+      content:"";
+      position:absolute; inset:0;
+      background: radial-gradient(380px 260px at 20% 0%, rgba(255,255,255,.13), transparent 55%);
+      opacity: .65;
+      pointer-events:none;
+      z-index:0;
+      mix-blend-mode: screen;
+    }
+    .card:hover{
+      border-color: rgba(255,255,255,.20);
+      box-shadow: 0 26px 80px rgba(0,0,0,.52);
+    }
+    .card:active{
+      transform: translateY(2px) scale(.992);
+    }
+
+    .content{
+      position:relative;
+      z-index:2;
+      height:100%;
+      padding: 18px 18px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      color: rgba(255,255,255,.86);
+      font-size: 12px;
+      letter-spacing:.2px;
+      box-shadow: var(--shadow2);
+    }
+    .dot{
+      width:8px;height:8px;border-radius:999px;
+      background: var(--accent, #7dd3fc);
+      box-shadow: 0 0 0 6px rgba(255,255,255,.05), 0 0 22px rgba(255,255,255,.15);
+    }
+
+    .temp{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:6px;
+    }
+    .temp .value{
+      font-size: 52px;
+      font-weight: 720;
+      letter-spacing: -1.2px;
+      line-height: .95;
+      text-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    .temp .meta{
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing:.2px;
+    }
+
+    .mid{
+      margin-top: 2px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .mid h2{
+      margin:0;
+      font-size: 18px;
+      letter-spacing:.2px;
+      font-weight: 680;
+    }
+    .mid .desc{
+      margin:0;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing:.2px;
+      line-height: 1.3;
+      max-width: 90%;
+    }
+
+    .stats{
+      margin-top:auto;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .stat{
+      padding: 12px 12px;
+      border-radius: 18px;
+      background: rgba(0,0,0,.14);
+      border: 1px solid var(--stroke2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.20);
+    }
+    .stat .k{
+      font-size: 11px;
+      color: var(--muted2);
+      letter-spacing:.22px;
+      margin-bottom: 6px;
+    }
+    .stat .v{
+      font-size: 14px;
+      color: var(--text);
+      letter-spacing:.15px;
+      font-weight: 650;
+    }
+
+    /* scene layers */
+    .scene{
+      position:absolute; inset:0;
+      z-index:1;
+      pointer-events:none;
+    }
+
+    .grain{
+      position:absolute; inset:0;
+      background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+      opacity: .07;
+      mix-blend-mode: overlay;
+    }
+
+    /* SUNNY */
+    .sunny{ --accent:#ffd36c; }
+    .sunny .scene{
+      background:
+        radial-gradient(520px 360px at 20% 25%, rgba(255,210,110,.48), transparent 55%),
+        radial-gradient(420px 300px at 78% 18%, rgba(255,160,90,.14), transparent 58%),
+        linear-gradient(180deg, rgba(60,120,255,.22), rgba(0,0,0,0));
+    }
+    .sun{
+      position:absolute;
+      width: 150px; height:150px;
+      left: -26px; top: -26px;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), rgba(255,210,120,.75) 35%, rgba(255,145,70,.35) 62%, transparent 72%);
+      filter: blur(.2px);
+      border-radius: 999px;
+      opacity:.95;
+      transform: translateZ(30px);
+      animation: sunFloat 6.6s var(--ease) infinite;
+    }
+    .sun::after{
+      content:"";
+      position:absolute; inset:-26px;
+      border-radius: 999px;
+      background: conic-gradient(from 180deg, rgba(255,255,255,.0), rgba(255,255,255,.14), rgba(255,255,255,.0));
+      filter: blur(2px);
+      opacity:.55;
+      animation: spin 10s linear infinite;
+    }
+    .sunray{
+      position:absolute;
+      width: 240px; height:240px;
+      left: -72px; top: -72px;
+      background: conic-gradient(from 0deg,
+        rgba(255,215,140,0) 0deg 12deg,
+        rgba(255,215,140,.18) 12deg 18deg,
+        rgba(255,215,140,0) 18deg 36deg);
+      border-radius: 999px;
+      filter: blur(1px);
+      opacity:.8;
+      animation: spin 14s linear infinite;
+      mix-blend-mode: screen;
+    }
+    @keyframes sunFloat{
+      0%,100%{ transform: translate(0,0) translateZ(30px); }
+      50%{ transform: translate(8px,10px) translateZ(30px); }
+    }
+
+    /* WINDY */
+    .windy{ --accent:#9ae6ff; }
+    .windy .scene{
+      background:
+        radial-gradient(520px 360px at 18% 22%, rgba(170,240,255,.22), transparent 56%),
+        radial-gradient(460px 340px at 90% 10%, rgba(120,180,255,.16), transparent 60%),
+        linear-gradient(180deg, rgba(40,70,120,.18), rgba(0,0,0,0));
+    }
+    .gust{
+      position:absolute;
+      left:-40%; right:-40%;
+      height: 18px;
+      top: 88px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), rgba(255,255,255,.06), transparent);
+      filter: blur(.2px);
+      opacity:.9;
+      transform: translateZ(24px);
+      animation: gust 2.6s linear infinite;
+    }
+    .gust:nth-child(2){ top: 128px; height: 14px; opacity:.75; animation-duration: 3.4s; animation-delay: -.8s;}
+    .gust:nth-child(3){ top: 168px; height: 10px; opacity:.6; animation-duration: 4.2s; animation-delay: -1.3s;}
+    @keyframes gust{
+      0%{ transform: translateX(-20%) translateZ(24px); }
+      100%{ transform: translateX(20%) translateZ(24px); }
+    }
+    .kite{
+      position:absolute;
+      width: 70px; height: 70px;
+      right: 18px; top: 72px;
+      transform: rotate(18deg) translateZ(28px);
+      opacity:.95;
+    }
+    .kite::before{
+      content:"";
+      position:absolute; inset: 10px;
+      background: linear-gradient(145deg, rgba(255,255,255,.30), rgba(255,255,255,.08));
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 14px;
+      transform: rotate(45deg);
+      box-shadow: 0 18px 40px rgba(0,0,0,.24);
+    }
+    .kite::after{
+      content:"";
+      position:absolute;
+      width: 88px; height: 88px;
+      left: -26px; top: 26px;
+      border-left: 2px solid rgba(255,255,255,.22);
+      border-bottom: 2px solid rgba(255,255,255,.18);
+      border-radius: 0 0 0 60px;
+      transform: rotate(-22deg);
+      opacity:.65;
+    }
+    .kite{
+      animation: kite 4.6s var(--ease) infinite;
+    }
+    @keyframes kite{
+      0%,100%{ transform: rotate(16deg) translate(0,0) translateZ(28px); }
+      50%{ transform: rotate(24deg) translate(-6px,8px) translateZ(28px); }
+    }
+
+    /* HEAVY RAIN */
+    .rain{ --accent:#7ab8ff; }
+    .rain .scene{
+      background:
+        radial-gradient(520px 360px at 20% 18%, rgba(120,180,255,.16), transparent 55%),
+        radial-gradient(560px 420px at 80% 0%, rgba(120,255,220,.10), transparent 60%),
+        linear-gradient(180deg, rgba(40,55,90,.32), rgba(0,0,0,0));
+    }
+    .cloud{
+      position:absolute;
+      left: 14px; top: 18px;
+      width: 240px; height: 120px;
+      transform: translateZ(26px);
+      opacity:.95;
+      filter: drop-shadow(0 20px 40px rgba(0,0,0,.35));
+      animation: cloud 7.2s var(--ease) infinite;
+    }
+    .cloud i{
+      position:absolute;
+      background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
+      border: 1px solid rgba(255,255,255,.14);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 999px;
+    }
+    .cloud i:nth-child(1){ width: 120px; height: 78px; left: 18px; top: 40px;}
+    .cloud i:nth-child(2){ width: 140px; height: 92px; left: 72px; top: 18px;}
+    .cloud i:nth-child(3){ width: 128px; height: 86px; left: 130px; top: 40px;}
+    .cloud i:nth-child(4){ width: 210px; height: 84px; left: 34px; top: 58px; border-radius: 32px;}
+    @keyframes cloud{
+      0%,100%{ transform: translate(0,0) translateZ(26px); }
+      50%{ transform: translate(10px,6px) translateZ(26px); }
+    }
+
+    .rainlines{
+      position:absolute; inset:0;
+      opacity:.85;
+      transform: translateZ(12px);
+    }
+    .drop{
+      position:absolute;
+      width: 2px;
+      height: 34px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,.0), rgba(255,255,255,.26), rgba(255,255,255,.04));
+      top: -40px;
+      animation: rainFall linear infinite;
+      filter: blur(.0px);
+    }
+    @keyframes rainFall{
+      0%{ transform: translateY(-30px); opacity:0; }
+      10%{ opacity:.9; }
+      100%{ transform: translateY(430px); opacity:0; }
+    }
+
+    .flash{
+      position:absolute; inset:0;
+      background: radial-gradient(700px 380px at 40% 10%, rgba(255,255,255,.35), transparent 55%);
+      opacity:0;
+      mix-blend-mode: screen;
+    }
+    .rain.thunder .flash{
+      animation: flash 2.9s steps(1,end) infinite;
+    }
+    @keyframes flash{
+      0%,70%,100%{ opacity:0; }
+      74%{ opacity:.35; }
+      76%{ opacity:0; }
+      79%{ opacity:.18; }
+      82%{ opacity:0; }
+    }
+
+    /* BLIZZARD */
+    .blizzard{ --accent:#d7f4ff; }
+    .blizzard .scene{
+      background:
+        radial-gradient(620px 440px at 25% 0%, rgba(220,250,255,.18), transparent 58%),
+        radial-gradient(520px 420px at 88% 16%, rgba(150,210,255,.14), transparent 60%),
+        linear-gradient(180deg, rgba(30,60,90,.26), rgba(0,0,0,0));
+    }
+    .snow{
+      position:absolute; inset:0;
+      transform: translateZ(14px);
+      opacity:.95;
+    }
+    .flake{
+      position:absolute;
+      width: 6px; height: 6px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), rgba(255,255,255,.35));
+      box-shadow: 0 0 12px rgba(255,255,255,.18);
+      top: -20px;
+      animation: snowFall linear infinite;
+    }
+    @keyframes snowFall{
+      0%{ transform: translate3d(0,-30px,0) rotate(0deg); opacity:0; }
+      12%{ opacity:.95; }
+      100%{ transform: translate3d(var(--dx, 60px), 430px, 0) rotate(260deg); opacity:0; }
+    }
+    .drift{
+      position:absolute;
+      left:-20%;
+      right:-20%;
+      bottom:-40px;
+      height: 160px;
+      background: radial-gradient(60% 80% at 40% 0%, rgba(255,255,255,.16), transparent 60%),
+                  radial-gradient(55% 80% at 70% 20%, rgba(255,255,255,.10), transparent 55%);
+      filter: blur(2px);
+      opacity:.9;
+    }
+
+    /* motion accessibility */
+    @media (prefers-reduced-motion: reduce){
+      *{ animation: none !important; transition: none !important; }
+      .card{ transform:none !important; }
+    }
+
+    /* small screens */
+    @media (max-width: 420px){
+      .card{ flex-basis: 260px; height: 350px; }
+      header{ flex-direction:column; align-items:flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Weather Dashboard</h1>
+        <p>iOS 18-inspired glass, depth, and motion</p>
+      </div>
+      <div class="seg" role="tablist" aria-label="Mode">
+        <button class="active" data-mode="live" role="tab" aria-selected="true">Live</button>
+        <button data-mode="calm" role="tab" aria-selected="false">Calm</button>
+        <button data-mode="vivid" role="tab" aria-selected="false">Vivid</button>
+      </div>
+    </header>
+
+    <section class="dash" aria-label="Horizontal weather dashboard">
+      <!-- SUNNY -->
+      <article class="card sunny" data-kind="sunny" tabindex="0" aria-label="Sunny weather card">
+        <div class="scene">
+          <div class="sunray"></div>
+          <div class="sun"></div>
+          <div class="grain"></div>
+        </div>
+        <div class="content">
+          <div class="top">
+            <div class="badge"><span class="dot"></span> Cupertino</div>
+            <div class="temp">
+              <div class="value"><span data-temp>28</span>°</div>
+              <div class="meta">H: 30° · L: 21°</div>
+            </div>
+          </div>
+          <div class="mid">
+            <h2>Sunny</h2>
+            <p class="desc">High visibility, warm air mass, gentle UV shimmer.</p>
+          </div>
+          <div class="stats">
+            <div class="stat"><div class="k">UV Index</div><div class="v">7 (High)</div></div>
+            <div class="stat"><div class="k">Humidity</div><div class="v">38%</div></div>
+            <div class="stat"><div class="k">Wind</div><div class="v">6 km/h</div></div>
+            <div class="stat"><div class="k">Feels Like</div><div class="v">29°</div></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- WINDY -->
+      <article class="card windy" data-kind="windy" tabindex="0" aria-label="Windy weather card">
+        <div class="scene">
+          <div class="gust"></div>
+          <div class="gust"></div>
+          <div class="gust"></div>
+          <div class="kite"></div>
+          <div class="grain"></div>
+        </div>
+        <div class="content">
+          <div class="top">
+            <div class="badge"><span class="dot"></span> Pacifica</div>
+            <div class="temp">
+              <div class="value"><span data-temp>17</span>°</div>
+              <div class="meta">Gusts up to 52 km/h</div>
+            </div>
+          </div>
+          <div class="mid">
+            <h2>Windy</h2>
+            <p class="desc">Strong coastal flow, variable gusts, rapid pressure change.</p>
+          </div>
+          <div class="stats">
+            <div class="stat"><div class="k">Wind</div><div class="v">34 km/h</div></div>
+            <div class="stat"><div class="k">Gust</div><div class="v">52 km/h</div></div>
+            <div class="stat"><div class="k">Pressure</div><div class="v">1003 hPa</div></div>
+            <div class="stat"><div class="k">Direction</div><div class="v">NW</div></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- HEAVY RAIN -->
+      <article class="card rain thunder" data-kind="rain" tabindex="0" aria-label="Heavy rain weather card">
+        <div class="scene">
+          <div class="cloud" aria-hidden="true">
+            <i></i><i></i><i></i><i></i>
+          </div>
+          <div class="rainlines" aria-hidden="true"></div>
+          <div class="flash" aria-hidden="true"></div>
+          <div class="grain"></div>
+        </div>
+        <div class="content">
+          <div class="top">
+            <div class="badge"><span class="dot"></span> Seattle</div>
+            <div class="temp">
+              <div class="value"><span data-temp>12</span>°</div>
+              <div class="meta">Rain: 18 mm/h</div>
+            </div>
+          </div>
+          <div class="mid">
+            <h2>Heavy Rain</h2>
+            <p class="desc">Dense precipitation bands with occasional lightning flashes.</p>
+          </div>
+          <div class="stats">
+            <div class="stat"><div class="k">Precip</div><div class="v">18 mm/h</div></div>
+            <div class="stat"><div class="k">Chance</div><div class="v">90%</div></div>
+            <div class="stat"><div class="k">Visibility</div><div class="v">3.2 km</div></div>
+            <div class="stat"><div class="k">Humidity</div><div class="v">92%</div></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- BLIZZARD -->
+      <article class="card blizzard" data-kind="blizzard" tabindex="0" aria-label="Blizzard weather card">
+        <div class="scene">
+          <div class="snow" aria-hidden="true"></div>
+          <div class="drift" aria-hidden="true"></div>
+          <div class="grain"></div>
+        </div>
+        <div class="content">
+          <div class="top">
+            <div class="badge"><span class="dot"></span> Reykjavík</div>
+            <div class="temp">
+              <div class="value"><span data-temp>-8</span>°</div>
+              <div class="meta">Whiteout conditions</div>
+            </div>
+          </div>
+          <div class="mid">
+            <h2>Blizzard</h2>
+            <p class="desc">Fast-moving snow with lateral drift and reduced visibility.</p>
+          </div>
+          <div class="stats">
+            <div class="stat"><div class="k">Wind Chill</div><div class="v">-16°</div></div>
+            <div class="stat"><div class="k">Snow</div><div class="v">4 cm/h</div></div>
+            <div class="stat"><div class="k">Visibility</div><div class="v">0.4 km</div></div>
+            <div class="stat"><div class="k">Wind</div><div class="v">41 km/h</div></div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    // iOS-like tilt + specular highlight
+    const cards = [...document.querySelectorAll(".card")];
+
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+    function setTilt(card, clientX, clientY){
+      const rect = card.getBoundingClientRect();
+      const x = (clientX - rect.left) / rect.width;   // 0..1
+      const y = (clientY - rect.top) / rect.height;   // 0..1
+      const rx = (0.5 - y) * 10; // degrees
+      const ry = (x - 0.5) * 12;
+
+      card.style.setProperty("--mx", (x * 100).toFixed(2) + "%");
+      card.style.setProperty("--my", (y * 100).toFixed(2) + "%");
+
+      card.style.transform =
+        `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-2px)`;
+    }
+
+    function resetTilt(card){
+      card.style.transform = `perspective(900px) rotateX(0deg) rotateY(0deg)`;
+      card.style.setProperty("--mx", "40%");
+      card.style.setProperty("--my", "20%");
+    }
+
+    cards.forEach(card => {
+      let raf = 0;
+
+      card.addEventListener("pointermove", (e) => {
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => setTilt(card, e.clientX, e.clientY));
+      });
+
+      card.addEventListener("pointerleave", () => {
+        cancelAnimationFrame(raf);
+        resetTilt(card);
+      });
+
+      card.addEventListener("focus", () => {
+        // subtle focus lift
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        card.style.transform = `perspective(900px) rotateX(0deg) rotateY(0deg) translateY(-2px)`;
+      });
+
+      card.addEventListener("blur", () => resetTilt(card));
+    });
+
+    // Populate rain drops + snow flakes procedurally
+    function makeDrops(container, count){
+      container.innerHTML = "";
+      for (let i=0;i<count;i++){
+        const d = document.createElement("span");
+        d.className = "drop";
+        const left = Math.random() * 100;
+        const delay = -Math.random() * 1.7;
+        const dur = 0.55 + Math.random() * 0.55;
+        const h = 22 + Math.random() * 32;
+        d.style.left = left + "%";
+        d.style.animationDelay = delay + "s";
+        d.style.animationDuration = dur + "s";
+        d.style.height = h + "px";
+        d.style.opacity = (0.45 + Math.random() * 0.55).toFixed(2);
+        container.appendChild(d);
+      }
+    }
+
+    function makeFlakes(container, count){
+      container.innerHTML = "";
+      for (let i=0;i<count;i++){
+        const f = document.createElement("span");
+        f.className = "flake";
+        const left = Math.random() * 100;
+        const delay = -Math.random() * 4.0;
+        const dur = 2.8 + Math.random() * 3.8;
+        const size = 3 + Math.random() * 5;
+        const dx = (Math.random() * 140) - 70; // drift
+        f.style.left = left + "%";
+        f.style.width = size + "px";
+        f.style.height = size + "px";
+        f.style.setProperty("--dx", dx.toFixed(0) + "px");
+        f.style.animationDelay = delay + "s";
+        f.style.animationDuration = dur + "s";
+        f.style.opacity = (0.35 + Math.random() * 0.65).toFixed(2);
+        container.appendChild(f);
+      }
+    }
+
+    const rainLines = document.querySelector(".rain .rainlines");
+    const snow = document.querySelector(".blizzard .snow");
+
+    makeDrops(rainLines, 46);
+    makeFlakes(snow, 36);
+
+    // Mode switch: affects intensity + palette punch
+    const seg = document.querySelector(".seg");
+    const buttons = [...seg.querySelectorAll("button")];
+
+    function setMode(mode){
+      buttons.forEach(b=>{
+        const on = b.dataset.mode === mode;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+
+      // intensity knobs
+      if (mode === "calm"){
+        document.documentElement.style.setProperty("--glass", "rgba(255,255,255,.08)");
+        document.documentElement.style.setProperty("--glass2", "rgba(255,255,255,.11)");
+        makeDrops(rainLines, 30);
+        makeFlakes(snow, 24);
+      } else if (mode === "vivid"){
+        document.documentElement.style.setProperty("--glass", "rgba(255,255,255,.12)");
+        document.documentElement.style.setProperty("--glass2", "rgba(255,255,255,.16)");
+        makeDrops(rainLines, 64);
+        makeFlakes(snow, 48);
+      } else {
+        document.documentElement.style.setProperty("--glass", "rgba(255,255,255,.10)");
+        document.documentElement.style.setProperty("--glass2", "rgba(255,255,255,.14)");
+        makeDrops(rainLines, 46);
+        makeFlakes(snow, 36);
+      }
+    }
+
+    seg.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      setMode(btn.dataset.mode);
+    });
+
+    // Subtle live temperature drift (optional, feels "alive")
+    const tempEls = [...document.querySelectorAll("[data-temp]")];
+    const baseTemps = tempEls.map(el => Number(el.textContent));
+
+    setInterval(()=>{
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      tempEls.forEach((el, idx)=>{
+        const base = baseTemps[idx];
+        const wobble = (Math.random() < 0.65) ? 0 : (Math.random() < 0.5 ? -1 : 1);
+        const next = clamp(base + wobble, base - 2, base + 2);
+        el.textContent = next;
+      });
+    }, 2600);
+
+    // Initial mode
+    setMode("live");
+  </script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS 18 Weather Cards</title>
+    <style>
+        /* --- 全局重置与字体 --- */
+        :root {
+            --card-radius: 32px;
+            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            font-family: var(--font-stack);
+            overflow: hidden;
+            color: white;
+        }
+
+        /* 模拟 iOS 18 的动态壁纸背景 */
+        .background-blobs {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            filter: blur(80px);
+            opacity: 0.6;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+
+        .blob-1 { width: 500px; height: 500px; background: #ff9a9e; top: -100px; left: -100px; }
+        .blob-2 { width: 400px; height: 400px; background: #a18cd1; bottom: -50px; right: -50px; animation-delay: -2s; }
+        .blob-3 { width: 300px; height: 300px; background: #fad0c4; top: 40%; left: 40%; animation-delay: -4s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(30px, 50px); }
+        }
+
+        /* --- 容器布局 --- */
+        .container {
+            display: flex;
+            gap: 24px;
+            padding: 20px;
+            perspective: 1000px; /* 3D 视差的关键 */
+        }
+
+        /* --- 卡片基础样式 (iOS Glassmorphism) --- */
+        .weather-card {
+            width: 220px;
+            height: 360px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--card-radius);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 悬停光效 */
+        .weather-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%);
+            pointer-events: none;
+        }
+
+        /* --- 内容排版 --- */
+        .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .card-header span {
+            font-size: 13px;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .temp {
+            font-size: 56px;
+            font-weight: 200;
+            margin: 10px 0;
+            letter-spacing: -2px;
+        }
+
+        .condition-text {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .high-low {
+            font-size: 13px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        /* --- 天气视觉化区域 --- */
+        .visual-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 1. 晴天 (Sunny) */
+        .sun {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #ffd700, #ff8c00);
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+            animation: spin 20s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* 2. 大风 (Windy) */
+        .cloud-base {
+            width: 100px;
+            height: 40px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50px;
+            position: relative;
+            animation: windFloat 3s infinite ease-in-out;
+        }
+        .cloud-base::after {
+            content: '';
+            position: absolute;
+            top: -20px; left: 15px;
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+        }
+        .wind-line {
+            position: absolute;
+            height: 3px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 2px;
+            animation: windDash 1s infinite linear;
+        }
+        @keyframes windFloat { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+        @keyframes windDash { 0% { width: 0; left: 0; opacity: 0; } 50% { opacity: 1; } 100% { width: 100px; left: 100%; opacity: 0; } }
+
+        /* 3. 暴雨 (Heavy Rain) */
+        .cloud-grey {
+            width: 90px;
+            height: 35px;
+            background: #7f8c8d;
+            border-radius: 50px;
+            position: relative;
+        }
+        .cloud-grey::after {
+            content: ''; position: absolute; top: -18px; left: 15px; width: 35px; height: 35px; background: #7f8c8d; border-radius: 50%;
+        }
+        .rain-drop {
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background: #a4b0be;
+            top: 40px;
+            animation: rainFall 0.8s infinite linear;
+        }
+        @keyframes rainFall { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
+
+        /* 4. 暴雪 (Blizzard) */
+        .snow-flake {
+            position: absolute;
+            color: white;
+            font-size: 20px;
+            animation: snowFall 2s infinite linear;
+        }
+        @keyframes snowFall { 
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 0; } 
+            20% { opacity: 1; }
+            100% { transform: translateY(60px) rotate(360deg); opacity: 0; } 
+        }
+
+        /* --- 针对不同天气的卡片微调 (色调倾向) --- */
+        .card-sunny { background: linear-gradient(180deg, rgba(255, 165, 0, 0.15), rgba(255, 255, 255, 0.1)); }
+        .card-windy { background: linear-gradient(180deg, rgba(72, 219, 251, 0.15), rgba(255, 255, 255, 0.1)); }
+        .card-rain { background: linear-gradient(180deg, rgba(44, 62, 80, 0.3), rgba(255, 255, 255, 0.05)); }
+        .card-snow { background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1)); }
+
+    </style>
+</head>
+<body>
+
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        
+        <div class="weather-card card-sunny" data-tilt>
+            <div class="card-header">
+                <h3>Cupertino</h3>
+                <span>Current Location</span>
+            </div>
+            <div class="visual-container">
+                <div class="sun"></div>
+            </div>
+            <div class="card-footer">
+                <div class="temp">28°</div>
+                <div class="condition-text">Sunny</div>
+                <div class="high-low">H:32° L:20°</div>
+            </div>
+        </div>
+
+        <div class="weather-card card-windy" data-tilt>
+            <div class="card-header">
+                <h3>Chicago</h3>
+                <span>Saved</span>
+            </div>
+            <div class="visual-container">
+                <div class="cloud-base"></div>
+                <div class="wind-line" style="top: 50%; left: 10px; animation-delay: 0s;"></div>
+                <div class="wind-line" style="top: 20%; left: 30px; animation-delay: 0.5s;"></div>
+                <div class="wind-line" style="top: 80%; left: 0px; animation-delay: 0.2s;"></div>
+            </div>
+            <div class="card-footer">
+                <div class="temp">16°</div>
+                <div class="condition-text">Windy</div>
+                <div class="high-low">H:18° L:12°</div>
+            </div>
+        </div>
+
+        <div class="weather-card card-rain" data-tilt>
+            <div class="card-header">
+                <h3>London</h3>
+                <span>Saved</span>
+            </div>
+            <div class="visual-container">
+                <div class="cloud-grey"></div>
+                <div class="rain-drop" style="left: 20px; animation-delay: 0s;"></div>
+                <div class="rain-drop" style="left: 40px; animation-delay: 0.3s;"></div>
+                <div class="rain-drop" style="left: 60px; animation-delay: 0.1s;"></div>
+                <div class="rain-drop" style="left: 30px; animation-delay: 0.5s;"></div>
+            </div>
+            <div class="card-footer">
+                <div class="temp">11°</div>
+                <div class="condition-text">Heavy Rain</div>
+                <div class="high-low">H:13° L:9°</div>
+            </div>
+        </div>
+
+        <div class="weather-card card-snow" data-tilt>
+            <div class="card-header">
+                <h3>Sapporo</h3>
+                <span>Saved</span>
+            </div>
+            <div class="visual-container">
+                <div class="snow-flake" style="left: 30%; animation-delay: 0s;">❄</div>
+                <div class="snow-flake" style="left: 50%; animation-delay: 1s;">❄</div>
+                <div class="snow-flake" style="left: 70%; animation-delay: 0.5s;">❄</div>
+                <div class="snow-flake" style="left: 40%; animation-delay: 1.5s; font-size: 14px;">❄</div>
+            </div>
+            <div class="card-footer">
+                <div class="temp">-4°</div>
+                <div class="condition-text">Blizzard</div>
+                <div class="high-low">H:0° L:-8°</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 简单的 3D 倾斜交互脚本 (模拟 iOS 磁贴效果)
+        const cards = document.querySelectorAll('.weather-card');
+
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // 计算旋转中心
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                // 计算旋转角度 (限制在 +/- 10deg)
+                const rotateX = ((y - centerY) / centerY) * -10;
+                const rotateY = ((x - centerX) / centerX) * 10;
+
+                // 应用样式
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+            });
+
+            // 鼠标移出时复位
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)`;
+            });
+        });
+    </script>
+</body>
+</html>
