@@ -126,9 +126,9 @@
     const tagsParam = params.get("tags") || "";
     const tagsFromUrl = tagsParam
       ? tagsParam
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean)
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
       : [];
 
     return { prompt, mode, theme, q, tagsFromUrl };
@@ -519,7 +519,7 @@
         card,
         `加载超时。可能原因：\n- 运行在 IDE 预览/WebView，iframe 被限制\n- 未通过本地静态服务器打开\n- htmlPath 指向不存在的文件\n\n当前页面协议：${location.protocol}\n目标：${resolvedUrl}`,
         () =>
-        loadIframeWithState(iframe, skeleton, card, resolvedUrl),
+          loadIframeWithState(iframe, skeleton, card, resolvedUrl),
       );
       skeleton.hidden = true;
     }, 12000);
@@ -599,34 +599,6 @@
     toast("已刷新");
   }
 
-  async function toggleSource(card, resolvedUrl) {
-    const panel = card.querySelector(".source-panel");
-    const pre = card.querySelector(".source-code");
-    if (!panel || !pre) return;
-
-    panel.hidden = !panel.hidden;
-    if (panel.hidden) return;
-
-    if (!resolvedUrl) {
-      pre.textContent = "缺少 htmlPath";
-      return;
-    }
-
-    if (pre.dataset.loaded === "true") return;
-    pre.textContent = "加载中…";
-
-    try {
-      const res = await fetch(resolvedUrl, { cache: "no-store" });
-      if (!res.ok) throw new Error(`读取失败：${res.status} ${res.statusText}`);
-      pre.textContent = await res.text();
-      pre.dataset.loaded = "true";
-    } catch (err) {
-      pre.textContent =
-        `无法读取源码：${String(err?.message || err)}\n\n` +
-        `提示：若通过 file:// 打开，浏览器可能阻止读取；可用本地静态服务器打开以启用 fetch。`;
-    }
-  }
-
   function createModelCard(model, idx) {
     const card = document.createElement("article");
     card.className = "model-card";
@@ -680,12 +652,8 @@
       window.open(resolvedUrl, "_blank", "noopener,noreferrer");
     });
 
-    const btnSource = actionButton("显示源码", "#i-code");
-    btnSource.addEventListener("click", () => toggleSource(card, resolvedUrl));
-
     actions.appendChild(btnReload);
     actions.appendChild(btnOpen);
-    actions.appendChild(btnSource);
 
     head.appendChild(titleWrap);
     head.appendChild(actions);
@@ -705,41 +673,8 @@
     iframe.title = label.textContent;
     shell.appendChild(iframe);
 
-    const sourcePanel = document.createElement("div");
-    sourcePanel.className = "source-panel";
-    sourcePanel.hidden = true;
-
-    const sourceTop = document.createElement("div");
-    sourceTop.className = "source-top";
-
-    const sourceTitle = document.createElement("div");
-    sourceTitle.className = "source-title";
-    sourceTitle.textContent = url ? url : "无 htmlPath";
-
-    const btnCopySource = document.createElement("button");
-    btnCopySource.type = "button";
-    btnCopySource.className = "btn secondary";
-    btnCopySource.innerHTML =
-      '<span class="icon" aria-hidden="true"><svg><use href="#i-copy"></use></svg></span>复制源码';
-    btnCopySource.addEventListener("click", async () => {
-      const code = sourcePanel.querySelector("pre")?.textContent || "";
-      const ok = await copyToClipboard(code);
-      toast(ok ? "已复制源码" : "复制失败");
-    });
-
-    sourceTop.appendChild(sourceTitle);
-    sourceTop.appendChild(btnCopySource);
-
-    const pre = document.createElement("pre");
-    pre.className = "source-code";
-    pre.textContent = "（未加载）";
-
-    sourcePanel.appendChild(sourceTop);
-    sourcePanel.appendChild(pre);
-
     card.appendChild(head);
     card.appendChild(shell);
-    card.appendChild(sourcePanel);
 
     if (resolvedUrl) loadIframeWithState(iframe, skeleton, card, resolvedUrl);
     else skeleton.textContent = "缺少 htmlPath";
@@ -820,7 +755,7 @@
     } catch (err) {
       showHint(
         `无法自动读取 ${DEFAULT_MANIFEST_PATH}：${String(err?.message || err)}\n` +
-          `可点“加载清单”选择本地 prompts.json，或用本地静态服务器打开该目录。`,
+        `可点“加载清单”选择本地 prompts.json，或用本地静态服务器打开该目录。`,
       );
     }
 
